@@ -147,7 +147,7 @@ public class GFOperations {
         return new Polynomial[]{result, p1};
     }
 
-    private void sortPolyByXDesc(Polynomial p1) {
+    public void sortPolyByXDesc(Polynomial p1) {
         Collections.sort(p1.getMonomials(), (o1, o2) -> {
             if (o1.getXDegree() > o2.getXDegree()) return -1;
             if (o1.getXDegree() < o2.getXDegree()) return 1;

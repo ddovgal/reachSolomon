@@ -30,8 +30,8 @@ public class GFPrimitives {
                 alphaCodes[i][j] = alphaCodes[i - (codeSize - 1)][j] ^ alphaCodes[i - codeSize][j];
     }
 
-    public boolean[] getAplhaCode(int aDegree) {
-        return alphaCodes[aDegree];
+    public boolean[] getAplphaCode(int aDegree) {
+        return alphaCodes[aDegree + 1];
     }
 
     public String showAplhaCode(int aDegree) {
