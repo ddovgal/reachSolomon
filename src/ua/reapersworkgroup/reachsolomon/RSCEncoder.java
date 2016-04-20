@@ -8,11 +8,7 @@ import ua.reapersworkgroup.reachsolomon.util.GFPrimitives;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 
 public class RSCEncoder {
 
@@ -30,36 +26,20 @@ public class RSCEncoder {
         generatorPoly = createGeneratorPoly();
     }
 
-    public static boolean[] binaryToBools(byte[] ints) {
-        boolean[] result = new boolean[ints.length];
-        for (int i = 0; i < result.length; i++) {
-            if (ints[i] == 1) result[i] = true;
-            else if (ints[i] == 0) result[i] = false;
-            else throw new IllegalArgumentException("Some of numbers isn't 0 or 1");
-        }
-        return result;
-    }
-
-    private byte[] convertIntegers(List<Integer> integers) {
-        byte[] ret = new byte[integers.size()];
-        Iterator<Integer> iterator = integers.iterator();
-        for (int i = 0; i < ret.length; i++) ret[i] = iterator.next().byteValue();
-        return ret;
-    }
-
     public void encodeFile(String path) throws Exception {
         if (codeSize != 8) throw new IllegalArgumentException("Yor code size must be only 8");
-        File file = new File(path);
-        byte[] source = new byte[(int) file.length()];
-        int[] data = new int[(int) file.length()];
-        InputStream fileInputStream = new FileInputStream(path);
-        fileInputStream.read(source);
-
-        for (int i = 0; i < source.length; i++) {
-            data[i] = source[i];
-        }
-        FileOutputStream fos = new FileOutputStream(path.replace(path.substring(path.lastIndexOf('.'), path.length()), ".rs"));
-        fos.write(convertIntegers(encode(data)));
+        byte[] source = new byte[(int) new File(path).length()];
+        new FileInputStream(path).read(source);
+        FileOutputStream fos = new FileOutputStream(
+                path.replace(
+                        path.substring(
+                                path.lastIndexOf('.'),
+                                path.length()
+                        ),
+                        ".rs"
+                )
+        );
+        fos.write(encode(source));
         fos.close();
     }
 
@@ -84,51 +64,47 @@ public class RSCEncoder {
         return result;
     }
 
-    public boolean[] encode(boolean... bits) {
-        if (bits.length % codeSize != 0)
-            throw new IllegalArgumentException("Illegal numbers of bits. Must be " + codeSize + "N bits");
+    public byte[] encode(byte[] bytes) {
+        ArrayList<Integer> resultNumbers = new ArrayList<>();
+        for (byte i : bytes) resultNumbers.add((int) i);
 
-        int[] numbers = new int[bits.length / codeSize];
-        GFPrimitives primitives = operations.getPrimitives();
-        for (int i = 0; i < numbers.length; i++)
-            numbers[i] = primitives.getAlphaDegreeByCode(Arrays.copyOfRange(bits, i * codeSize, (i + 1) * codeSize));
+        getFullRemainderMonomials(bytes).stream().forEach(
+                monomial -> resultNumbers.add(monomial.getADegree())
+        );
 
-        ArrayList<Monomial> monomials = getFullRemainderMonomials(numbers);
-
-        boolean[] result = new boolean[bits.length + codeSize * monomials.size()];
-        System.arraycopy(bits, 0, result, 0, bits.length);
-        for (int i = 0; i < monomials.size(); i++) {
-            boolean[] aCode = primitives.getAlphaCode(monomials.get(i).getADegree());
-            for (int j = 0; j < codeSize; j++) {
-                result[bits.length + i * codeSize + j] = aCode[j];
-            }
-        }
-
+        byte[] result = new byte[resultNumbers.size()];
+        for (int i = 0; i < resultNumbers.size(); i++)
+            result[i] = resultNumbers.get(i).byteValue();
         return result;
     }
 
-    public ArrayList<Integer> encode(int... numbers) {
+    public ArrayList<Integer> encode(int... ints) {
         ArrayList<Integer> resultNumbers = new ArrayList<>();
+        byte[] bytes = new byte[ints.length];
 
-        for (int i : numbers) resultNumbers.add(i);
-        getFullRemainderMonomials(numbers).stream().forEach(
+        for (int i = 0; i < ints.length; i++) {
+            resultNumbers.add(i);
+            bytes[i] = (byte) ints[i];
+        }
+
+        getFullRemainderMonomials(bytes).stream().forEach(
                 monomial -> resultNumbers.add(monomial.getADegree())
         );
 
         return resultNumbers;
     }
 
-    private ArrayList<Monomial> getFullRemainderMonomials(int[] numbers) {
+    private ArrayList<Monomial> getFullRemainderMonomials(byte[] numbers) {
         int fullSize = numbers.length + 2 * errorsSize;
-        Polynomial sourcePoly = new Polynomial();
+        Polynomial dataPoly = new Polynomial();
 
         for (int i = 0; i < numbers.length; i++) {
-            if (numbers[i] > (int) Math.pow(2, codeSize) - 2 || numbers[i] < 0)
+            if (numbers[i] > Math.pow(2, codeSize) - 2 || numbers[i] < 0)
                 throw new IllegalArgumentException("Some of numbers dose not contains in current Galua field");
-            sourcePoly.addMonomial(fullSize - 1 - i, numbers[i]);
+            dataPoly.addMonomial(fullSize - 1 - i, numbers[i]);
         }
 
-        Polynomial remainder = operations.divPolys(sourcePoly, generatorPoly)[1]; //need only remainder
+        Polynomial remainder = operations.divPolys(dataPoly, generatorPoly)[1]; //need only remainder
         inflatePoly(remainder); // if not all x degrees are exists
 
         return remainder.getMonomials();
