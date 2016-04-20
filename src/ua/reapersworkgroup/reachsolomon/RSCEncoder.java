@@ -5,8 +5,14 @@ import ua.reapersworkgroup.reachsolomon.mathtype.Polynomial;
 import ua.reapersworkgroup.reachsolomon.util.GFOperations;
 import ua.reapersworkgroup.reachsolomon.util.GFPrimitives;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 public class RSCEncoder {
 
@@ -17,7 +23,7 @@ public class RSCEncoder {
 
     private final Polynomial generatorPoly;
 
-    public RSCEncoder(int codeSize, int errorsSize) {
+    public RSCEncoder(int codeSize, int errorsSize) throws Exception {
         this.codeSize = codeSize;
         this.errorsSize = errorsSize;
         operations = new GFOperations(codeSize);
@@ -32,6 +38,29 @@ public class RSCEncoder {
             else throw new IllegalArgumentException("Some of numbers isn't 0 or 1");
         }
         return result;
+    }
+
+    private byte[] convertIntegers(List<Integer> integers) {
+        byte[] ret = new byte[integers.size()];
+        Iterator<Integer> iterator = integers.iterator();
+        for (int i = 0; i < ret.length; i++) ret[i] = iterator.next().byteValue();
+        return ret;
+    }
+
+    public void encodeFile(String path) throws Exception {
+        if (codeSize != 8) throw new IllegalArgumentException("Yor code size must be only 8");
+        File file = new File(path);
+        byte[] source = new byte[(int) file.length()];
+        int[] data = new int[(int) file.length()];
+        InputStream fileInputStream = new FileInputStream(path);
+        fileInputStream.read(source);
+
+        for (int i = 0; i < source.length; i++) {
+            data[i] = source[i];
+        }
+        FileOutputStream fos = new FileOutputStream(path.replace(path.substring(path.lastIndexOf('.'), path.length()), ".rs"));
+        fos.write(convertIntegers(encode(data)));
+        fos.close();
     }
 
     private Polynomial createGeneratorPoly() {
@@ -69,7 +98,7 @@ public class RSCEncoder {
         boolean[] result = new boolean[bits.length + codeSize * monomials.size()];
         System.arraycopy(bits, 0, result, 0, bits.length);
         for (int i = 0; i < monomials.size(); i++) {
-            boolean[] aCode = primitives.getAplphaCode(monomials.get(i).getADegree());
+            boolean[] aCode = primitives.getAlphaCode(monomials.get(i).getADegree());
             for (int j = 0; j < codeSize; j++) {
                 result[bits.length + i * codeSize + j] = aCode[j];
             }

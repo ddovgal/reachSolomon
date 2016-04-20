@@ -11,7 +11,7 @@ public class GFOperations {
     private final int codeSize;
     private final GFPrimitives primitives;
 
-    public GFOperations(int codeSize) {
+    public GFOperations(int codeSize) throws Exception {
         this.codeSize = codeSize;
         primitives = new GFPrimitives(this.codeSize);
     }
