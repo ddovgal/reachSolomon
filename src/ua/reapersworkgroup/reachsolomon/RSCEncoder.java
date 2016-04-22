@@ -83,7 +83,7 @@ public class RSCEncoder {
         byte[] bytes = new byte[ints.length];
 
         for (int i = 0; i < ints.length; i++) {
-            resultNumbers.add(i);
+            resultNumbers.add(ints[i]);
             bytes[i] = (byte) ints[i];
         }
 
